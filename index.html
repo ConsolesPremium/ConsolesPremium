@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="max-age=31536000">
+  <title>TikTok - Roleta de Prêmios</title>
+  <link href="../css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="images/roleta-97.webp" fetchpriority="high">
+  <link rel="preload" as="audio" href="media/som_giro.mp3">
+  <link rel="preload" as="audio" href="media/erro.mp3">
+  <link rel="preload" as="audio" href="media/som_ganho.mp3">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background-color: #ffffff;
+      color: #333;
+      text-align: center;
+      max-width: 768px;
+      margin: 0 auto;
+      position: relative;
+      overflow-x: hidden;
+      padding-top: 80px;
+    }
+
+    .logo-evento {
+      margin: 0 0 24px;
+      padding: 0 16px;
+    }
+
+    .logo-evento h1 {
+      font-size: 38px;
+      margin-bottom: 7px;
+      font-weight: 700;
+      color: #000000;
+      line-height: 1.2;
+    }
+
+    .logo-evento p {
+      font-size: 20px;
+      margin-top: 0;
+      margin-bottom: 12px;
+      color: #666;
+      font-weight: 400;
+      line-height: 1.4;
+    }
+
+    .roleta-wrapper {
+      position: relative;
+      width: 320px;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .seta {
+      position: absolute;
+      top: -0.99px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-top: 30px solid #fe2c55;
+      z-index: 2;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: translateX(-50%) scale(1);
+      }
+      50% {
+        transform: translateX(-50%) scale(1.1);
+      }
+    }
+
+    .roleta-container {
+      width: 100%;
+      height: 320px;
+      border: 8px solid #26f4ee;
+      border-radius: 50%;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+                  0 0 20px rgba(38, 244, 238, 0.3);
+      background: #f8f9fa;
+      transition: all 0.3s ease;
+    }
+
+
+
+    .roleta-container.loading::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 40px;
+      height: 40px;
+      margin: -20px 0 0 -20px;
+      border: 4px solid #fe2c55;
+      border-top: 4px solid transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      z-index: 1;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .roleta {
+      width: 100%;
+      height: 100%;
+      transform: rotate(0deg);
+      transition: transform 10s ease-out;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+      will-change: transform;
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+    }
+
+    .btn-girar {
+      margin-top: 15px;
+      padding: 15px 30px;
+      font-size: 16px;
+      background: #fe2c55;
+      color: #ffffff;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      line-height: 1;
+      display: inline-block;
+    }
+
+    .btn-girar:hover {
+      background: #ed2648;
+    }
+
+    .btn-girar:active {
+      background: #ed2648;
+    }
+
+    .chances {
+      margin-top: 10px;
+      margin-bottom: 51px;
+      color: #777;
+      font-size: 14px;
+    }
+
+    .chances #chances {
+      color: #000;
+    }
+
+    .popup,
+    .popup-erro {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffffff;
+      background-color: #ffffff;
+      border-radius: 16px;
+      padding: 30px 22px;
+      display: none;
+      z-index: 10000;
+      width: 90%;
+      max-width: 300px;
+      text-align: center;
+      border: none;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+    }
+
+    .popup h2,
+    .popup-erro h2 {
+      color: #fe2c55;
+      font-size: 23px;
+      margin-bottom: 10.5px;
+    }
+
+    .popup p,
+    .popup-erro p {
+      font-size: 17px;
+      color: #000000;
+    }
+
+    .popup p b {
+      color: #10b981;
+    }
+
+    .popup-buttons {
+      margin-top: 21.5px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .popup-buttons button {
+      margin-top: 0;
+      padding: 15px 30px;
+      font-size: 16px;
+      background: #fe2c55;
+      color: #ffffff;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      line-height: 1;
+      display: inline-block;
+    }
+
+    .btn-resgatar {
+      background: #fe2c55;
+      color: #ffffff;
+    }
+
+    .btn-resgatar:hover {
+      background: #ed2648;
+    }
+
+    .btn-resgatar:active {
+      background: #ed2648;
+    }
+
+    .btn-tentar {
+      background: #fe2c55;
+      color: #ffffff;
+    }
+
+    .btn-tentar:hover {
+      background: #ed2648;
+    }
+
+    .btn-tentar:active {
+      background: #ed2648;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    canvas.confetti {
+      pointer-events: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9998;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 9998;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .modal-overlay.show {
+      display: block;
+    }
+
+    :root {
+      /* Cores Primárias */
+      --color-primary: #fe2c55;
+      --color-primary-hover: #ed2648;
+      --color-primary-active: #ed2648;
+      
+      /* Cores Secundárias */
+      --color-accent: #26f4ee;
+      --color-accent-light: rgba(38, 244, 238, 0.3);
+      
+      /* Cores de Texto */
+      --color-text-primary: #333333;
+      --color-text-secondary: #666666;
+      --color-text-light: #999999;
+      
+      /* Cores de Fundo */
+      --color-bg-white: #ffffff;
+      --color-bg-light: #f8f9fa;
+      --color-bg-gray: #f0f0f0;
+      --color-bg-black: #000000;
+      
+      /* Sombras */
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+      --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.3);
+      
+      /* Sombras Coloridas */
+      --shadow-primary: 0 4px 12px rgba(255, 45, 85, 0.3);
+      --shadow-primary-hover: 0 6px 16px rgba(255, 45, 85, 0.4);
+      
+      /* Border Radius */
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 50%;
+      
+      /* Transições */
+      --transition-fast: 0.2s ease;
+      --transition-normal: 0.3s ease;
+      --transition-slow: 0.6s ease;
+    }
+
+    /* ============================================ */
+    /* SISTEMA DE DEPOIMENTOS - CANTO INFERIOR DIREITO */
+    /* ============================================ */
+    
+    #people {
+      position: fixed;
+      bottom: 16px;
+      right: 20px;
+      background: #000000 !important;
+      border: none !important;
+      color: #ffffff !important;
+      padding: 14px 20px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      z-index: 8888;
+      max-width: 400px;
+      width: auto;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #people.display-off {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+
+    #people.slide-animation {
+      animation: slideInRight 0.5s ease forwards;
+    }
+
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    #people-img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    #people-p {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.3;
+      color: #ffffff !important;
+      text-align: left;
+    }
+
+    #people-p b {
+      color: #fe2c55 !important;
+      font-weight: bold;
+    }
+
+    #people-p span {
+      color: #fe2c55 !important;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding-top: 60px;
+      }
+      
+      .logo-evento {
+        margin: 0 0 22px;
+      }
+      
+      .logo-evento h1 {
+        font-size: 32px;
+      }
+      
+      .logo-evento p {
+        font-size: 18px;
+      }
+      
+      .roleta-wrapper {
+        width: 280px;
+        margin: 0 auto 12px;
+      }
+      
+      .roleta-container {
+        height: 280px;
+      }
+      
+      .btn-girar {
+        max-width: 280px;
+        min-height: 48px;
+        max-height: 48px;
+        font-size: 16px;
+        margin-top: 12px;
+      }
+      
+      .chances {
+        margin-top: 8px;
+      }
+      
+      .popup,
+      .popup-erro {
+        padding: 28px 21px;
+      }
+      
+      .popup h2,
+      .popup-erro h2 {
+        font-size: 25px;
+      }
+      
+      .popup-buttons button {
+        max-width: 280px;
+        min-height: 48px;
+        max-height: 48px;
+        font-size: 16px;
+      }
+
+      /* Depoimentos Responsivo - Canto Direito */
+      #people {
+        bottom: 13px;
+        right: 15px;
+        padding: 12px 16px;
+        gap: 12px;
+        max-width: 360px;
+      }
+
+      #people-img {
+        width: 44px;
+        height: 44px;
+      }
+
+      #people-p {
+        font-size: 16px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding-top: 50px;
+      }
+      
+      .logo-evento {
+        margin: 0 0 20px;
+      }
+      
+      #people {
+        bottom: 11px;
+        right: 10px;
+        padding: 10px 14px;
+        gap: 10px;
+        max-width: 340px;
+      }
+
+      #people-img {
+        width: 40px;
+        height: 40px;
+      }
+
+      #people-p {
+        font-size: 15px;
+        line-height: 1.2;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- LOGO DO EVENTO -->
+  <div class="logo-evento">
+    <h1 style="font-size: 38px; margin-bottom: 2.5px; font-weight: bold; color: #000000;">
+      Gire e Ganhe
+    </h1>
+    <p style="font-size: 22px; margin-top: 0; margin-bottom: 12px; color: #000000;">
+      Teste sua sorte e ganhe<br>até 97% de desconto
+    </p>
+  </div>
+
+  <!-- ROLETA -->
+  <div class="roleta-wrapper">
+    <div class="seta"></div>
+    <div class="roleta-container">
+      <img src="images/roleta-97.webp" id="roleta" class="roleta" loading="eager" decoding="sync" fetchpriority="high"
+        alt="Roleta de prêmios do TikTok" importance="high">
+    </div>
+  </div>
+
+  <button class="btn-girar" onclick="girarRoleta()">GIRE PARA GANHAR</button>
+  
+  <div class="chances">Chances restantes: <span id="chances">2</span></div>
+
+  <!-- POPUP PREMIO -->
+  <div class="popup" id="popupPremio">
+    <h2>Parabéns!</h2>
+    <img src="images/cvbh.webp" style="max-width: 80px; height: auto; display: block; margin: 10px auto;">
+    <p>Você acaba de ganhar<br><b style="color: #10b981;">97% de desconto!</b></p>
+    <div class="popup-buttons">
+      <button class="btn-resgatar" onclick="handleResgatarClick()">RESGATE SEU PS5</button>
+    </div>
+  </div>
+
+  <!-- POPUP ERRO -->
+  <div class="popup-erro" id="popupErro">
+    <h2>Que pena!</h2>
+    <img src="images/qwdp.webp" style="max-width: 80px; height: auto; display: block; margin: 10px auto;">
+    <p style="color: #000000; display: inline-block;">Você tem direito a mais um giro.<br>Boa sorte!</p>
+    <div class="popup-buttons">
+      <button class="btn-tentar" onclick="fecharErro()">TENTAR NOVAMENTE</button>
+    </div>
+  </div>
+
+  <!-- NOTIFICAÇÃO DE DEPOIMENTOS (RODAPÉ FIXO) -->
+  <div id="people" class="people">
+    <img src="https://i.postimg.cc/RhB8zCK5/24.jpg" id="people-img" alt="">
+    <p id="people-p">João Silva acabou de ganhar <b>75% de desconto<span>!</span></b></p>
+  </div>
+
+  <!-- ÁUDIOS -->
+  <audio id="somGiro" preload="auto" playsinline>
+    <source src="media/som_giro.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="somErro" preload="auto" playsinline>
+    <source src="media/erro.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="somAcerto" preload="auto" playsinline>
+    <source src="media/som_ganho.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- OVERLAY ESCURO -->
+  <div class="modal-overlay" id="modalOverlay"></div>
+
+  <!-- CONFETTI -->
+  <canvas class="confetti" id="confettiCanvas"></canvas>
+  <script src="js/confetti.browser.min.js"></script>
+
+  <!-- SCRIPT -->
+  <script>
+    // Pré-carrega a imagem da roleta
+    (function () {
+      const img = new Image();
+      img.src = 'images/roleta-97.webp';
+      img.onload = function () {
+        console.log('Imagem da roleta pré-carregada');
+      };
+    })();
+
+    // Pré-carrega os áudios de forma garantida
+    (function () {
+      const audios = ['media/som_giro.mp3', 'media/erro.mp3', 'media/som_ganho.mp3'];
+      audios.forEach(src => {
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audio.src = src;
+        audio.load();
+      });
+      console.log('Áudios pré-carregados');
+    })();
+
+    // Controle de carregamento da imagem
+    const roletaImg = document.getElementById('roleta');
+    const roletaContainer = document.querySelector('.roleta-container');
+
+    roletaContainer.classList.add('loading');
+
+    function checkImageLoaded() {
+      if (roletaImg.complete && roletaImg.naturalHeight !== 0) {
+        roletaContainer.classList.remove('loading');
+      } else {
+        roletaImg.addEventListener('load', function () {
+          roletaContainer.classList.remove('loading');
+        });
+
+        setTimeout(function () {
+          roletaContainer.classList.remove('loading');
+        }, 1000);
+      }
+    }
+
+    checkImageLoaded();
+
+    const roleta = roletaImg;
+    const popup = document.getElementById('popupPremio');
+    const popupErro = document.getElementById('popupErro');
+    const chancesSpan = document.getElementById('chances');
+    const modalOverlay = document.getElementById('modalOverlay');
+
+    const somGiro = document.getElementById('somGiro');
+    const somErro = document.getElementById('somErro');
+    const somAcerto = document.getElementById('somAcerto');
+
+    // Configurar volume dos áudios
+    somGiro.volume = 0.7;
+    somErro.volume = 0.7;
+    somAcerto.volume = 0.7;
+
+    let chances = 2;
+    let girando = false;
+    let totalAngle = 0;
+    let audioDesbloqueado = false;
+
+    // Sistema de desbloqueio de áudio para todos os navegadores
+    function desbloquearAudios() {
+      if (audioDesbloqueado) return;
+      
+      const audios = [somGiro, somErro, somAcerto];
+      
+      audios.forEach(audio => {
+        // Força o carregamento do áudio
+        audio.load();
+        
+        // Tenta dar play e pause imediatamente para desbloquear
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+          }).catch(() => {
+            // Silenciosamente ignora erros de desbloqueio
+          });
+        }
+      });
+      
+      audioDesbloqueado = true;
+      console.log('Áudios desbloqueados com sucesso');
+    }
+
+    // Função melhorada para tocar som com garantia de funcionamento
+    function tocarSom(audio) {
+      try {
+        // Garante que o áudio está carregado
+        audio.load();
+        audio.currentTime = 0;
+        
+        // Tenta tocar o áudio
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('Áudio tocando:', audio.src);
+            })
+            .catch((error) => {
+              console.warn('Erro ao tocar áudio:', error);
+              // Tenta novamente após um pequeno delay
+              setTimeout(() => {
+                audio.play().catch(() => {
+                  console.error('Falha ao tocar áudio após retry');
+                });
+              }, 100);
+            });
+        }
+      } catch (error) {
+        console.error('Erro ao preparar áudio:', error);
+      }
+    }
+
+    // Desbloqueia áudios no primeiro clique/toque do usuário
+    document.addEventListener('click', desbloquearAudios, { once: true });
+    document.addEventListener('touchstart', desbloquearAudios, { once: true });
+
+    function girarRoleta() {
+      if (girando || chances <= 0) return;
+
+      // Desbloqueia áudios na primeira interação
+      desbloquearAudios();
+
+      girando = true;
+      chances--;
+      chancesSpan.textContent = chances;
+
+      // Rastrear giro da roleta
+      if (window.TikTokPixels) {
+        window.TikTokPixels.trackSpinWheel();
+      }
+
+      // Tocar som do giro com garantia
+      setTimeout(() => tocarSom(somGiro), 50);
+
+      const giroExtra = 360 * 6;
+      let angleFinal = 0;
+
+      if (chances === 1) {
+        angleFinal = 135; // Posição de erro
+      } else if (chances === 0) {
+        angleFinal = 203.99; // Posição de prêmio
+      }
+
+      totalAngle += giroExtra + angleFinal;
+      roleta.style.transition = "transform 10s ease-out";
+      roleta.style.transform = `rotate(${totalAngle}deg)`;
+
+      setTimeout(() => {
+        setTimeout(() => {
+          if (chances === 1) {
+            tocarSom(somErro);
+            modalOverlay.classList.add('show');
+            popupErro.style.display = "block";
+          } else if (chances === 0) {
+            // Rastrear ganho na roleta
+            if (window.TikTokPixels) {
+              window.TikTokPixels.trackWheelWin('97% desconto PS5');
+            }
+            tocarSom(somAcerto);
+            ativarConfetti();
+            modalOverlay.classList.add('show');
+            popup.style.display = "block";
+          }
+          girando = false;
+        }, 300);
+      }, 10000);
+    }
+
+    // Fecha popup de erro e gira novamente
+    function fecharErro() {
+      modalOverlay.classList.remove('show');
+      popupErro.style.display = "none";
+      girarRoleta();
+    }
+
+    function ativarConfetti() {
+      const canvas = document.getElementById('confettiCanvas');
+      const confetti = window.confetti.create(canvas, { resize: true });
+      const duration = 2000;
+      const end = Date.now() + duration;
+
+      (function frame() {
+        confetti({ particleCount: 5, spread: 60, origin: { y: 0.6 } });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      })();
+    }
+
+    // Função para lidar com clique no botão resgatar
+    function handleResgatarClick() {
+      // Rastrear clique no botão resgatar
+      if (window.TikTokPixels) {
+        window.TikTokPixels.trackButtonClick('resgatar_ps5');
+        window.TikTokPixels.trackAddToCart({
+          product_id: 'ps5-slim',
+          product_name: 'Console PS5 Slim 1TB',
+          value: 69.83,
+          quantity: 1
+        });
+      }
+window.location.href = 'ps5.html';
+    }
+
+    // ============================================
+    // SISTEMA DE DEPOIMENTOS - ROTAÇÃO AUTOMÁTICA
+    // ============================================
+
+    const frases = [
+      {
+        frase: `João Silva acabou de ganhar <b>25% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/RhB8zCK5/24.jpg',
+      },
+      {
+        frase: `Maria Santos acabou de ganhar <b>30% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/prw31XTF/2.jpg',
+      },
+      {
+        frase: `Ana Oliveira acabou de ganhar <b>97% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/X7FvNr9t/3.jpg',
+      },
+      {
+        frase: `Carlos Souza acabou de ganhar <b>10% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/2ynfYBgw/5.jpg',
+      },
+      {
+        frase: `José Costa acabou de ganhar <b>50% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/kXrTRHtD/6.jpg',
+      },
+      {
+        frase: `Juliana Lima acabou de ganhar <b>25% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/0ynPrDjX/4.jpg',
+      },
+      {
+        frase: `Paula Alves acabou de ganhar <b>30% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/9XNrx3BF/10.jpg',
+      },
+      {
+        frase: `Fernanda Silva acabou de ganhar <b>10% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/x8Wj92sv/11.jpg',
+      },
+      {
+        frase: `Paulo Rocha acabou de ganhar <b>50% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/nhFYvfVV/7.jpg',
+      },
+      {
+        frase: `Pedro Carvalho acabou de ganhar <b>25% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/cHSQ4pzN/9.jpg',
+      },
+      {
+        frase: `Lucas Pereira acabou de ganhar <b>30% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/W3wf26XX/14.jpg',
+      },
+      {
+        frase: `Camila Gomes acabou de ganhar <b>97% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/xTMNqxKf/12.jpg',
+      },
+      {
+        frase: `Carla Ferreira acabou de ganhar <b>10% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/qq8BBFWW/13.jpg',
+      },
+      {
+        frase: `Amanda Vieira acabou de ganhar <b>50% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/MT9bPss2/15.jpg',
+      },
+      {
+        frase: `André Martins acabou de ganhar <b>25% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/vmBW17Y0/16.jpg',
+      },
+      {
+        frase: `Felipe Barbosa acabou de ganhar <b>30% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/rwgHX9Zj/17.jpg',
+      },
+      {
+        frase: `Gabriel Ramos acabou de ganhar <b>97% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/0NFcPXYY/18.jpg',
+      },
+      {
+        frase: `Beatriz Castro acabou de ganhar <b>10% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/VkSKpcMf/19.jpg',
+      },
+      {
+        frase: `Rafael Santos acabou de ganhar <b>50% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/qvXNkN2j/20.jpg',
+      },
+      {
+        frase: `Mariana Rocha acabou de ganhar <b>97% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/N0Fdh9nr/23.jpg',
+      },
+      {
+        frase: `Thiago Rodrigues acabou de ganhar <b>50% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/25gVzM07/21.jpg',
+      },
+      {
+        frase: `Ricardo Ribeiro acabou de ganhar <b>30% de desconto<span style="color: #fe2c55;">!</span></b>`,
+        imgSrc: 'https://i.postimg.cc/ZK0tcnb0/22.jpg',
+      },
+    ];
+
+    // Iniciar sistema de depoimentos
+    window.addEventListener('DOMContentLoaded', () => {
+      const contDiv = document.getElementById('people');
+      const peopleFrase = document.getElementById('people-p');
+      const peopleImg = document.querySelector('#people-img');
+      let lastIndex = -1;
+      
+      setInterval(() => {
+        let rand;
+        // Garante que não repete a mesma pessoa consecutivamente
+        do {
+          rand = Math.floor(Math.random() * frases.length);
+        } while (rand === lastIndex && frases.length > 1);
+        
+        lastIndex = rand;
+        const { frase, imgSrc } = frases[rand];
+        
+        // Atualiza conteúdo
+        peopleFrase.innerHTML = frase;
+        peopleImg.src = imgSrc;
+        
+        // Animação de entrada/saída
+        contDiv.classList.toggle('display-off');
+        contDiv.classList.remove('slide-animation');
+        setTimeout(() => {
+          contDiv.classList.toggle('display-off');
+          contDiv.classList.add('slide-animation');
+        }, 20);
+      }, 4000); // Muda a cada 4 segundos
+    });
+
+  </script>
+
+  <!-- TikTok Pixels Integration -->
+  <script src="../js/tiktok-pixels.js"></script>
+</body>
+
+</html>
